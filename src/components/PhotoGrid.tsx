@@ -1,16 +1,11 @@
 import React from 'react';
-
-interface Photo {
-    filepath: string;
-    webPath?: string;
-}
+import type { Photo } from '../usePhotoGallery';
 
 interface PhotoGridProps {
     photos: Photo[];
-    onDeletePhoto: (photo: Photo, index: number) => void;
 }
 
-const PhotoGrid: React.FC<PhotoGridProps> = ({ photos, onDeletePhoto }) => {
+const PhotoGrid: React.FC<PhotoGridProps> = ({ photos }) => {
     if (photos.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center py-16 text-gray-500">
@@ -51,27 +46,6 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ photos, onDeletePhoto }) => {
                             className="w-full h-full object-cover"
                         />
                     </div>
-
-                    <button
-                        onClick={() => onDeletePhoto(photo, index)}
-                        className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-lg"
-                        aria-label={`Delete photo ${index + 1}`}
-                    >
-                        <svg
-                            className="w-3 h-3"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                            xmlns="http://www.w3.org/2000/svg"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M6 18L18 6M6 6l12 12"
-                            />
-                        </svg>
-                    </button>
                 </div>
             ))}
         </div>

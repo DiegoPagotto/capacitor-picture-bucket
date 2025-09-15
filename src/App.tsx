@@ -2,7 +2,7 @@ import { usePhotoGallery } from './usePhotoGallery';
 import PhotoGrid from './components/PhotoGrid';
 
 function App() {
-    const { photos, takePhoto, deletePhoto } = usePhotoGallery();
+    const { photos, takePhoto } = usePhotoGallery();
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -74,7 +74,7 @@ function App() {
             </header>
 
             <main className="max-w-7xl mx-auto py-6">
-                <PhotoGrid photos={photos} onDeletePhoto={deletePhoto} />
+                <PhotoGrid photos={photos} />
             </main>
         </div>
     );

@@ -1,14 +1,30 @@
 import { useState, useEffect } from 'react';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
-import { Filesystem, Directory } from '@capacitor/filesystem';
+import {
+    ref,
+    uploadBytes,
+    getDownloadURL,
+    deleteObject,
+} from 'firebase/storage';
+import {
+    getFirestore,
+    collection,
+    addDoc,
+    getDocs,
+    doc,
+    deleteDoc,
+} from 'firebase/firestore';
+import { storage, app } from './firebase';
 
-interface Photo {
-    filepath: string;
-    webPath?: string;
+export interface Photo {
+    id?: string;
+    webPath: string;
+    filename?: string;
 }
 
 export const usePhotoGallery = () => {
     const [photos, setPhotos] = useState<Photo[]>([]);
+    const firestore = getFirestore(app);
 
     const takePhoto = async () => {
         try {
@@ -21,14 +37,7 @@ export const usePhotoGallery = () => {
             const fileName = Date.now() + '.jpeg';
             const savedFile = await savePicture(photo, fileName);
 
-            const newPhotos = [savedFile, ...photos];
-            setPhotos(newPhotos);
-
-            await Filesystem.writeFile({
-                path: 'photos.json',
-                data: JSON.stringify(newPhotos),
-                directory: Directory.Data,
-            });
+            setPhotos((prev) => [savedFile, ...prev]);
         } catch (error) {
             console.error('Error taking photo:', error);
         }
@@ -40,68 +49,68 @@ export const usePhotoGallery = () => {
     ): Promise<Photo> => {
         const response = await fetch(photo.webPath!);
         const blob = await response.blob();
-        const base64Data = (await convertBlobToBase64(blob)) as string;
 
-        await Filesystem.writeFile({
-            path: fileName,
-            data: base64Data,
-            directory: Directory.Data,
+        const storageRef = ref(storage, `photos/${fileName}`);
+        console.log('Uploading to Storage:', fileName);
+        await uploadBytes(storageRef, blob);
+        console.log('Upload done:', storageRef.fullPath);
+
+        const url = await getDownloadURL(storageRef);
+
+        const docRef = await addDoc(collection(firestore, 'photos'), {
+            filename: fileName,
+            url,
+            createdAt: Date.now(),
         });
 
         return {
-            filepath: fileName,
-            webPath: photo.webPath,
+            id: docRef.id,
+            webPath: url,
+            filename: fileName,
         };
     };
 
-    const convertBlobToBase64 = (blob: Blob) =>
-        new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onerror = reject;
-            reader.onload = () => {
-                resolve(reader.result);
-            };
-            reader.readAsDataURL(blob);
-        });
-
     const loadSaved = async () => {
         try {
-            const photoList = await Filesystem.readFile({
-                path: 'photos.json',
-                directory: Directory.Data,
+            console.log('Loading saved photos from Firestore...');
+            const querySnapshot = await getDocs(
+                collection(firestore, 'photos')
+            );
+            const savedPhotos: Photo[] = [];
+            console.log('Photos found:', querySnapshot.size);
+            querySnapshot.forEach((docSnap) => {
+                const data = docSnap.data();
+                savedPhotos.push({
+                    id: docSnap.id,
+                    webPath: data.url,
+                    filename: data.filename,
+                });
             });
 
-            const photosInStorage = JSON.parse(photoList.data as string) || [];
-
-            for (const photo of photosInStorage) {
-                const file = await Filesystem.readFile({
-                    path: photo.filepath,
-                    directory: Directory.Data,
-                });
-                photo.webPath = `data:image/jpeg;base64,${file.data}`;
-            }
-
-            setPhotos(photosInStorage);
-        } catch {
-            console.log('No previous photos found');
+            const reversed = savedPhotos.reverse();
+            setPhotos((prev) => {
+                const prevIds = prev.map((p) => p.id).join(',');
+                const newIds = reversed.map((p) => p.id).join(',');
+                if (prevIds !== newIds) return reversed;
+                return prev;
+            });
+        } catch (error) {
+            console.error('Error loading photos:', error);
         }
     };
 
-    const deletePhoto = async (photo: Photo, index: number) => {
+    const deletePhoto = async (photo: Photo) => {
         try {
-            await Filesystem.deleteFile({
-                path: photo.filepath,
-                directory: Directory.Data,
-            });
+            if (photo.filename) {
+                const storageRef = ref(storage, `photos/${photo.filename}`);
+                await deleteObject(storageRef);
+            }
 
-            const newPhotos = photos.filter((_, i) => i !== index);
-            setPhotos(newPhotos);
+            if (photo.id) {
+                await deleteDoc(doc(firestore, 'photos', photo.id));
+            }
 
-            await Filesystem.writeFile({
-                path: 'photos.json',
-                data: JSON.stringify(newPhotos),
-                directory: Directory.Data,
-            });
+            setPhotos((prev) => prev.filter((p) => p.id !== photo.id));
         } catch (error) {
             console.error('Error deleting photo:', error);
         }
@@ -109,6 +118,12 @@ export const usePhotoGallery = () => {
 
     useEffect(() => {
         loadSaved();
+
+        const interval = setInterval(() => {
+            loadSaved();
+        }, 10000);
+
+        return () => clearInterval(interval);
     }, []);
 
     return {
