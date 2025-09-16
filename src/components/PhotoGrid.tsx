@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Photo } from '../usePhotoGallery';
+import type { Photo } from '../types/photo';
 
 interface PhotoGridProps {
     photos: Photo[];

@@ -1,4 +1,4 @@
-import { usePhotoGallery } from './usePhotoGallery';
+import { usePhotoGallery } from './hooks/usePhotoGallery';
 import PhotoGrid from './components/PhotoGrid';
 
 function App() {
