@@ -1,5 +1,6 @@
 import { usePhotoGallery } from './hooks/usePhotoGallery';
 import PhotoGrid from './components/PhotoGrid';
+import './config/firebaseAuth';
 
 function App() {
     const { photos, takePhoto } = usePhotoGallery();
