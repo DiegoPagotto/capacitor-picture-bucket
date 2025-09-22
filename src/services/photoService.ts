@@ -9,15 +9,36 @@ import {
     getFirestore,
     collection,
     addDoc,
-    getDocs,
     doc,
     deleteDoc,
+    query,
+    onSnapshot,
+    orderBy,
 } from 'firebase/firestore';
 import { storage, app } from '../config/firebase';
 import type { Photo, PhotoData } from '../types/photo';
 
 export class PhotoService {
     private firestore = getFirestore(app);
+
+    subscribePhotos(callback: (photos: Photo[]) => void) {
+        console.log('Subscribing to photos in Firestore...');
+        const q = query(
+            collection(this.firestore, 'photos'),
+            orderBy('createdAt', 'desc')
+        );
+        return onSnapshot(q, (snapshot) => {
+            const savedPhotos: Photo[] = snapshot.docs.map((docSnap) => {
+                const data = docSnap.data() as PhotoData;
+                return {
+                    id: docSnap.id,
+                    webPath: data.url,
+                    filename: data.filename,
+                };
+            });
+            callback(savedPhotos);
+        });
+    }
 
     async takePhoto(): Promise<{ webPath?: string }> {
         const photo = await Camera.getPhoto({
@@ -53,27 +74,6 @@ export class PhotoService {
             webPath: url,
             filename: fileName,
         };
-    }
-
-    async loadPhotos(): Promise<Photo[]> {
-        console.log('Loading saved photos from Firestore...');
-        const querySnapshot = await getDocs(
-            collection(this.firestore, 'photos')
-        );
-        console.log('Number of photos in Firestore:', querySnapshot.size);
-
-        const savedPhotos: Photo[] = [];
-        querySnapshot.forEach((docSnap) => {
-            const data = docSnap.data() as PhotoData;
-            console.log('Photo from Firestore:', data);
-            savedPhotos.push({
-                id: docSnap.id,
-                webPath: data.url,
-                filename: data.filename,
-            });
-        });
-
-        return savedPhotos.reverse();
     }
 
     async deletePhoto(photo: Photo): Promise<void> {
