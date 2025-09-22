@@ -10,9 +10,7 @@ export const usePhotoGallery = () => {
         try {
             const photo = await photoService.takePhoto();
             const fileName = photoService.generateFileName();
-            const savedFile = await photoService.savePhoto(photo, fileName);
-
-            setPhotos((prev) => [savedFile, ...prev]);
+            await photoService.savePhoto(photo, fileName);
         } catch (error) {
             console.error('Error taking photo:', error);
         }
