@@ -1,5 +1,6 @@
 import React from 'react';
 import type { Photo } from '../types/photo';
+import PhotoItem from './PhotoItem';
 
 interface PhotoGridProps {
     photos: Photo[];
@@ -40,18 +41,7 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ photos }) => {
                 style={{ columnGap: 0 }}
             >
                 {photos.map((photo, index) => (
-                    <div
-                        key={index}
-                        className="break-inside-avoid"
-                        style={{ padding: 6 }}
-                    >
-                        <img
-                            src={photo.webPath}
-                            alt={`Photo ${index + 1}`}
-                            className="w-full h-auto object-cover rounded-lg block"
-                            loading="lazy"
-                        />
-                    </div>
+                    <PhotoItem key={index} photo={photo} index={index} />
                 ))}
             </div>
         </div>
