@@ -29,5 +29,5 @@ export const usePhotoGallery = () => {
         return () => unsubscribe();
     }, [photoService]);
 
-    return { photos, takePhoto, deletePhoto };
+    return { photos, takePhoto, deletePhoto, photoService };
 };

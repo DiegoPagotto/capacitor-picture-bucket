@@ -5,7 +5,7 @@ import Header from './components/Header';
 import './config/firebaseAuth';
 
 function App() {
-    const { photos, takePhoto } = usePhotoGallery();
+    const { photos, takePhoto, photoService } = usePhotoGallery();
     const [isCompact, setIsCompact] = useState(false);
 
     useEffect(() => {
@@ -22,7 +22,7 @@ function App() {
             <Header isCompact={isCompact} onTakePhoto={takePhoto} />
             <main className="relative z-0 pb-8 pt-4">
                 <div className="flex justify-center items-center mx-auto">
-                    <PhotoGrid photos={photos} />
+                    <PhotoGrid photos={photos} photoService={photoService} />
                 </div>
             </main>
             <div className="fixed inset-0 pointer-events-none overflow-hidden opacity-60">

@@ -1,12 +1,42 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { Photo } from '../types/photo';
 import PhotoItem from './PhotoItem';
+import { PhotoService } from '../services/photoService';
 
 interface PhotoGridProps {
     photos: Photo[];
+    photoService?: PhotoService;
 }
 
-const PhotoGrid: React.FC<PhotoGridProps> = ({ photos }) => {
+const PhotoGrid: React.FC<PhotoGridProps> = ({ photos, photoService }) => {
+    const [holdingPhotoIndex, setHoldingPhotoIndex] = useState<number | null>(
+        null
+    );
+
+    const handleClickOutside = (event: React.MouseEvent) => {
+        const target = event.target as HTMLElement;
+        const isPhotoClick =
+            target.tagName === 'IMG' ||
+            target.closest('[data-photo-item]') !== null ||
+            target.closest('button') !== null;
+
+        if (!isPhotoClick && holdingPhotoIndex !== null) {
+            setHoldingPhotoIndex(null);
+        }
+    };
+
+
+
+    const handleDeletePhoto = async (photo: Photo) => {
+        try {
+            if (photoService) {
+                await photoService.deletePhoto(photo);
+            }
+        } catch (error) {
+            console.error('Failed to delete photo:', error);
+        }
+    };
+
     if (photos.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center py-32 px-4">
@@ -28,7 +58,7 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ photos }) => {
     }
 
     return (
-        <div className="mx-auto">
+        <div className="mx-auto" onClick={handleClickOutside}>
             <div className="text-center">
                 <p className="text-gray-300 text-sm font-medium">
                     {photos.length} {photos.length === 1 ? 'photo' : 'photos'}{' '}
@@ -41,7 +71,16 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ photos }) => {
                 style={{ columnGap: 0 }}
             >
                 {photos.map((photo, index) => (
-                    <PhotoItem key={index} photo={photo} index={index} />
+                    <PhotoItem
+                        key={index}
+                        photo={photo}
+                        index={index}
+                        onDelete={handleDeletePhoto}
+                        isHolding={holdingPhotoIndex === index}
+                        onSetHolding={(isHolding) =>
+                            setHoldingPhotoIndex(isHolding ? index : null)
+                        }
+                    />
                 ))}
             </div>
         </div>
