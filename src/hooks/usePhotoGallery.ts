@@ -1,9 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
 import { PhotoService } from '../services/photoService';
+import { authReady } from '../config/firebaseAuth';
 import type { Photo } from '../types/photo';
 
 export const usePhotoGallery = () => {
     const [photos, setPhotos] = useState<Photo[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
     const photoService = useMemo(() => new PhotoService(), []);
 
     const takePhoto = async () => {
@@ -25,9 +27,29 @@ export const usePhotoGallery = () => {
     };
 
     useEffect(() => {
-        const unsubscribe = photoService.subscribePhotos(setPhotos);
-        return () => unsubscribe();
+        let unsubscribe: (() => void) | undefined;
+
+        const initializePhotos = async () => {
+            try {
+                await authReady;
+                console.log('Auth ready, subscribing to photos...');
+
+                unsubscribe = photoService.subscribePhotos(setPhotos);
+                setIsLoading(false);
+            } catch (error) {
+                console.error('Error initializing photos:', error);
+                setIsLoading(false);
+            }
+        };
+
+        initializePhotos();
+
+        return () => {
+            if (unsubscribe) {
+                unsubscribe();
+            }
+        };
     }, [photoService]);
 
-    return { photos, takePhoto, deletePhoto, photoService };
+    return { photos, takePhoto, deletePhoto, photoService, isLoading };
 };
